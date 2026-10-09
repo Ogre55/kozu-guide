@@ -45,12 +45,43 @@ canvas{flex:none;background:#fff;touch-action:none;cursor:grab}
 .zb{position:absolute;top:8px;right:8px;z-index:2;display:flex;gap:4px;align-items:center}
 .zb button{margin:0;padding:4px 10px;opacity:.9}
 .zb span{min-width:46px;text-align:center;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+#figside{position:absolute;top:50px;right:10px;z-index:3;width:min(310px,40%);max-height:calc(100% - 62px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+#figside{transition:transform .18s ease,opacity .18s ease,visibility .18s;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+#figside.hide{transform:translateX(calc(100% + 20px));opacity:0;visibility:hidden;pointer-events:none}
+#figside:empty{display:none}
+#figtab{position:absolute;top:50px;right:0;z-index:3;margin:0;padding:12px 6px;border-radius:8px 0 0 8px;writing-mode:vertical-rl;letter-spacing:.1em;font-size:12px;opacity:.85}
+#figtab.gone{display:none}
+#lpads{position:absolute;left:8px;top:46px;bottom:8px;z-index:3;width:184px;display:flex;flex-direction:column;justify-content:flex-start;gap:8px;pointer-events:none;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.lpad{pointer-events:auto;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px 8px;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);opacity:.92}
+.lpad:hover,.lpad:focus-within{opacity:1}
+.lpad .num{width:62px!important}
+.lpad details.more{margin-top:10px}
+.lpad .chk{gap:2px 12px}
+.lpad .chk label{margin:0}
+.vchk{display:grid!important;grid-template-columns:auto auto;justify-content:space-between;gap:3px 4px!important}
+.vchk label{white-space:nowrap;font-size:11.5px}
+.lpad.min .gb{display:none}
+.lpad .gh{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.lpad .gh button{margin:0;padding:1px 8px;font-size:12px;background:none;color:var(--acc)}
+.lpad label{margin-top:4px;font-size:12px}
+.lpad .sub{margin:4px 0 0;font-size:10px}
+.xy{position:relative;width:100%;height:92px;margin-top:6px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat,var(--bg);touch-action:none;cursor:crosshair}
+.xy:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.xy b{position:absolute;font-size:10px;font-weight:400;color:var(--sub);pointer-events:none}
+.puck{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--acc);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none}
+#figside details.sec{margin:0;padding:0;border:0}
+#figside details.sec+details.sec{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .grip,.tabs{display:none}
 details.more{margin-top:12px;border:1px dashed var(--line);border-radius:6px;padding:0 10px 10px}
 details.more>summary{cursor:pointer;padding:8px 0 0;font-size:12px;color:var(--acc);user-select:none}
 details.more:not([open])>summary{padding-bottom:8px}
 @media (max-width:900px),(pointer:coarse){
 .app{flex-direction:column;gap:0;padding:0}
+#figside,#figtab{display:none}
+.pbody>.lpad{position:static;width:auto;max-height:none;overflow:visible;box-shadow:none;border:0;padding:0;opacity:1;background:none;font-size:14px}
+.pbody>.lpad .gh{display:none}
+.pbody>.lpad .gb{display:block!important}
+.xy{height:150px}
 .stage{order:-1;flex:1;height:auto;min-height:0}
 .panel{width:100%;flex:none;height:var(--dh,46vh);max-height:none;align-self:stretch;padding:0;border-width:1px 0 0;border-radius:14px 14px 0 0;display:flex;flex-direction:column;overflow:hidden}
 .grip{display:block;flex:none;width:100%;height:22px;margin:0;padding:0;border:0;border-radius:0;background:none;touch-action:none;cursor:ns-resize;position:relative}
@@ -80,7 +111,7 @@ details.sec>summary{display:none}
 ・<span class="dot" style="background:#ff8a00"></span> をドラッグ:向きを回す<br>
 ・<span class="dot" style="background:#14a85a"></span> をドラッグ:身長を変える<br>
 ・<span class="dot" style="background:#8a3ffc"></span> をドラッグ:肘・手首・膝・足首を動かす<br>
-・何もない所をドラッグ:カメラの向きを変える<br>・ホイール:画角を変える(下へ回すと広角、上へ回すと望遠)<br>・Ctrl(またはShift)+ホイール:表示の拡大縮小(カーソル位置が中心)<br>・Spaceキー+ドラッグ / 中ボタン・右ボタンのドラッグ:表示を移動<br>・スマホは2本指でつまんで拡大縮小・移動<br>・「描く」でペン・直線・消しゴムが使えます<br>・プレビューに見えている範囲がそのまま保存されます</div>
+・左下の「床」パッド:丸を動かした側の床が持ち上がる(ダブルクリックで水平)。下のスライダーで回転と高さ<br>・何もない所をドラッグ:カメラの向きを変える<br>・ホイール:画角を変える(下へ回すと広角、上へ回すと望遠)<br>・Ctrl(またはShift)+ホイール:表示の拡大縮小(カーソル位置が中心)<br>・Spaceキー+ドラッグ / 中ボタン・右ボタンのドラッグ:表示を移動<br>・スマホは2本指でつまんで拡大縮小・移動<br>・「描く」でペン・直線・消しゴムが使えます<br>・プレビューの右端にカーソルを近づけると、人形・ポーズの操作が出ます(PC)<br>・プレビューに見えている範囲がそのまま保存されます</div>
 
 <label>保存する画像サイズ</label>
 <div class="row">
@@ -122,67 +153,12 @@ details.sec>summary{display:none}
 <input id="rl" type="range" min="-45" max="45" step="0.5" value="0">
 
 </details>
-<details class="sec" open data-k="cam"><summary>カメラ</summary>
-<label>上下角 <span id="v_pitch"></span></label>
-<input id="pitch" type="range" min="-85" max="85" step="0.1" value="-25">
-<div class="sub" style="margin:0">マイナスでフカン、プラスでアオリ</div>
-
-<label>左右の回転 <span id="v_yaw"></span></label>
-<input id="yaw" type="range" min="-180" max="180" step="0.1" value="30">
-<div class="sub" style="margin:0">0で1点透視、45で左右対称の2点透視</div>
-
-<label>画角(広いほどパースが強い) <span id="v_fov"></span></label>
-<input id="fov" type="range" min="15" max="160" step="0.5" value="55">
-<div class="sub" style="margin:0">プレビュー上でホイールを回しても変わります(下へ回すと広角)</div>
-
-<label>カメラの高さ <span id="v_ch"></span></label>
-<div class="row"><input id="ch" type="range" min="0.05" max="50" step="0.05" value="1.6" aria-label="カメラの高さ(スライダー)"><input id="chn" class="num" type="number" min="0.01" max="1000" step="0.1" value="1.6" aria-label="カメラの高さ(数値)"></div>
-<div class="sub" style="margin:0">スライダーは50mまで。数値なら1000mまで入力できます</div>
-
-</details>
-<details class="sec" open data-k="gnd"><summary>地面</summary>
-<div class="chk"><label><input type="checkbox" id="sg" checked> 地面を表示(OFFでグリッドも塗りも消す)</label></div>
-<label>床の高さ <span id="v_gfy"></span></label>
-<div class="row"><input id="gfy" type="range" min="-20" max="20" step="0.05" value="0" aria-label="床の高さ(スライダー)"><input id="gfn" class="num" type="number" min="-1000" max="1000" step="0.1" value="0" aria-label="床の高さ(数値)"></div>
-<div class="sub" style="margin:0">カメラより上げると、ステージや2階の床になります</div>
-<label>前後の傾き <span id="v_gtx"></span></label>
-<input id="gtx" type="range" min="-45" max="45" step="0.5" value="0">
-<div class="sub" style="margin:0">プラスで奥が上り坂</div>
-<label>左右の傾き <span id="v_gtz"></span></label>
-<input id="gtz" type="range" min="-45" max="45" step="0.5" value="0">
-<label>地面の回転 <span id="v_gry"></span></label>
-<input id="gry" type="range" min="-90" max="90" step="0.5" value="0">
-<details class="more"><summary>地面の見た目(色・塗り・間隔)</summary>
-<div class="row" style="align-items:center"><span style="font-weight:600">グリッド線の色</span><input id="gc" type="color" value="#6b7280" style="width:56px;height:28px;padding:0;flex:none" aria-label="地面グリッドの色"></div>
-<div class="chk"><label><input type="checkbox" id="gf"> 地面を塗りつぶす</label></div>
-<div class="row" style="align-items:center"><span style="font-weight:600">塗りの色</span><input id="gfc" type="color" value="#b9d7a8" style="width:56px;height:28px;padding:0;flex:none" aria-label="地面の塗りの色"></div>
-<label>塗りの濃さ <span id="v_gfo"></span></label>
-<input id="gfo" type="range" min="5" max="100" value="40">
-<label>グリッド間隔</label>
-<select id="step" class="full">
-<option value="0.5">0.5m</option>
-<option value="1" selected>1m</option>
-<option value="2">2m</option>
-<option value="5">5m</option>
-</select>
+<details class="sec" open data-k="pose" data-tab="fig"><summary>ポーズ</summary>
+<select id="poseSel" aria-label="ポーズを選ぶ"></select>
+<div id="pose"></div>
+<button id="poseReset" class="sm ghost">ポーズを初期化</button>
 </details>
 
-</details>
-<details class="sec" open data-k="view"><summary>表示</summary>
-<label>線の本数 <span id="v_n"></span></label>
-<input id="n" type="range" min="4" max="60" value="16">
-<label>消失点からの線の不透明度 <span id="v_vo"></span></label>
-<input id="vo" type="range" min="5" max="100" value="75">
-<div class="chk">
-<label><input type="checkbox" id="sh" checked> アイレベル</label>
-<label><input type="checkbox" id="sa" checked> 消失点A</label>
-<label><input type="checkbox" id="sb" checked> 消失点B</label>
-<label><input type="checkbox" id="sv"> 縦(3点目)</label>
-<label><input type="checkbox" id="sf" checked> 人形</label>
-<label><input type="checkbox" id="sd" checked> 描いた線</label>
-</div>
-
-</details>
 <details class="sec" open data-k="fig"><summary>人形のアタリ</summary>
 <div class="row"><select id="fsel" aria-label="人形を選ぶ"></select></div>
 <div><button id="fadd" class="sm">人形を追加</button><button id="fdel" class="ghost sm">削除</button></div>
@@ -194,11 +170,6 @@ details.sec>summary{display:none}
 <input id="fr" type="range" min="0" max="359" value="200">
 <label>身長 <span id="v_fh"></span></label>
 <input id="fh" type="range" min="0.5" max="2.5" step="0.05" value="1.7">
-<details class="more" open><summary>ポーズ(関節の角度)</summary>
-<select id="poseSel" aria-label="ポーズを選ぶ"></select>
-<div id="pose"></div>
-<button id="poseReset" class="sm ghost">ポーズを初期化</button>
-</details>
 <details class="more"><summary>操作の感度</summary>
 <label>ドラッグで動かす量 <span id="v_fs"></span></label>
 <input id="fs" type="range" min="5" max="150" step="5" value="100">
@@ -206,11 +177,53 @@ details.sec>summary{display:none}
 </details>
 
 </details>
-<div data-tab="out"><button id="save">PNGを保存</button><button id="reset" class="ghost">初期値に戻す</button>
+<div data-tab="out"><button id="save">PNGを保存</button><button id="copy">クリップボードにコピー</button><button id="reset" class="ghost">初期値に戻す</button>
+<div class="sub" id="cpmsg" role="status" aria-live="polite" style="min-height:1.4em"></div>
 <div id="info"></div></div>
 </div>
 </div>
-<div class="stage" id="stage"><button id="tg" style="position:absolute;top:8px;left:8px;margin:0;padding:4px 10px;z-index:2;opacity:.9">◀ パネルを隠す</button><div class="zb"><button id="zo" aria-label="縮小">−</button><span id="zl">100%</span><button id="zi" aria-label="拡大">＋</button><button id="zr" class="ghost" style="margin-left:2px">全体表示</button></div><canvas id="cv" aria-label="ガイド線のプレビュー"></canvas></div>
+<div class="stage" id="stage"><button id="tg" style="position:absolute;top:8px;left:8px;margin:0;padding:4px 10px;z-index:2;opacity:.9">◀ パネルを隠す</button><div class="zb"><button id="zo" aria-label="縮小">−</button><span id="zl">100%</span><button id="zi" aria-label="拡大">＋</button><button id="zr" class="ghost" style="margin-left:2px">全体表示</button></div><canvas id="cv" aria-label="ガイド線のプレビュー"></canvas><button id="figtab" aria-label="人形の操作を開く">◀ 人形・ポーズ</button><div id="figside" class="hide"></div><div id="lpads"><div id="vpad" class="lpad" data-tab="view" aria-label="表示の切り替え"><div class="gh"><span>表示</span><button class="fold" aria-label="たたむ">▾</button></div>
+<div class="gb"><div class="chk vchk" style="margin:6px 0 0">
+<label><input type="checkbox" id="sh" checked> アイレベル</label>
+<label><input type="checkbox" id="sa" checked> 消失点A</label>
+<label><input type="checkbox" id="sb" checked> 消失点B</label>
+<label><input type="checkbox" id="sv"> 縦(3点目)</label>
+<label><input type="checkbox" id="sf" checked> 人形</label>
+<label><input type="checkbox" id="sd" checked> 描いた線</label>
+</div>
+<details class="more"><summary>線の本数・濃さ</summary>
+<label>線の本数 <span id="v_n"></span></label>
+<input id="n" type="range" min="4" max="60" value="16">
+<label>線の濃さ <span id="v_vo"></span></label>
+<input id="vo" type="range" min="5" max="100" value="75">
+</details></div></div>
+<div id="cpad" class="lpad" data-tab="cam" aria-label="カメラの操作パッド"><div class="gh"><span>カメラ</span><button class="fold" aria-label="たたむ">▾</button></div>
+<div class="gb"><div id="cxy" class="xy" tabindex="0" role="application" aria-label="カメラの向き。ドラッグまたは矢印キー。Shiftを押しながらで細かく" title="ドラッグで向きを変える(Shiftを押しながらで細かく/ダブルクリックで正面・水平)"><b style="top:2px;left:50%;transform:translateX(-50%)">見上げ(アオリ)</b><b style="bottom:2px;left:50%;transform:translateX(-50%)">見下ろし(フカン)</b><b style="left:3px;top:50%;transform:translateY(-50%)">左</b><b style="right:3px;top:50%;transform:translateY(-50%)">右</b><i id="cpuck" class="puck"></i></div>
+<div class="sub" title="上下はマイナスでフカン・プラスでアオリ。左右は0で1点透視、45で左右対称の2点透視">上下 <span id="v_pitch"></span> / 左右 <span id="v_yaw"></span></div>
+<input id="pitch" type="range" min="-85" max="85" step="0.1" value="-25" hidden><input id="yaw" type="range" min="-180" max="180" step="0.1" value="30" hidden>
+<label>画角 <span id="v_fov"></span></label>
+<input id="fov" type="range" min="15" max="160" step="0.5" value="55" title="広いほどパースが強い。プレビュー上のホイールでも変わります">
+<label>高さ <span id="v_ch"></span></label>
+<div class="row"><input id="ch" type="range" min="0.05" max="50" step="0.05" value="1.6" aria-label="カメラの高さ(スライダー)"><input id="chn" class="num" type="number" min="0.01" max="1000" step="0.1" value="1.6" aria-label="カメラの高さ(数値)"></div>
+</div></div>
+<div id="gpad" class="lpad" data-tab="gnd" aria-label="床・地面の操作パッド"><div class="gh"><span>床・地面</span><span><button id="gpflat" title="傾きをなくす">水平</button><button class="fold" aria-label="たたむ">▾</button></span></div>
+<div class="gb">
+<div class="chk vchk" style="margin:6px 0 0"><label><input type="checkbox" id="sg" checked> 地面を表示</label><label><input type="checkbox" id="gf"> 塗りつぶし</label></div>
+<div id="gxy" class="xy" tabindex="0" role="application" aria-label="床の傾き。ドラッグまたは矢印キー"><b style="top:2px;left:50%;transform:translateX(-50%)">奥</b><b style="bottom:2px;left:50%;transform:translateX(-50%)">手前</b><b style="left:3px;top:50%;transform:translateY(-50%)">左</b><b style="right:3px;top:50%;transform:translateY(-50%)">右</b><i id="gpuck" class="puck"></i></div>
+<div class="sub" title="丸を動かした側の床が持ち上がります">前後 <span id="v_gtx"></span> / 左右 <span id="v_gtz"></span></div>
+<input id="gtx" type="range" min="-45" max="45" step="0.5" value="0" hidden><input id="gtz" type="range" min="-45" max="45" step="0.5" value="0" hidden>
+<label>回す <span id="v_gry"></span></label>
+<input id="gry" type="range" min="-90" max="90" step="0.5" value="0">
+<label>高さ <span id="v_gfy"></span></label>
+<div class="row"><input id="gfy" type="range" min="-20" max="20" step="0.05" value="0" aria-label="床の高さ(スライダー)"><input id="gfn" class="num" type="number" min="-1000" max="1000" step="0.1" value="0" aria-label="床の高さ(数値)"></div>
+<label>グリッド間隔</label>
+<select id="step" class="full"><option value="0.5">0.5m</option><option value="1" selected>1m</option><option value="2">2m</option><option value="5">5m</option></select>
+<details class="more"><summary>色・塗りの濃さ</summary>
+<div class="row" style="align-items:center"><span style="font-weight:600">グリッド線</span><input id="gc" type="color" value="#6b7280" style="width:56px;height:28px;padding:0;flex:none" aria-label="地面グリッドの色"></div>
+<div class="row" style="align-items:center"><span style="font-weight:600">塗りの色</span><input id="gfc" type="color" value="#b9d7a8" style="width:56px;height:28px;padding:0;flex:none" aria-label="地面の塗りの色"></div>
+<label>塗りの濃さ <span id="v_gfo"></span></label>
+<input id="gfo" type="range" min="5" max="100" value="40">
+</details></div></div></div></div>
 </div>
 
 <script>
@@ -534,6 +547,7 @@ function draw(ex){
   $('v_hz').textContent=(+$('hz').value).toFixed(1)+'%';
   for(const id of ['pitch','fov','yaw','rl','n','gtx','gtz','gry']) $('v_'+id).textContent=$(id).value+UNIT[id];
   $('save').textContent=`PNGを保存(${$('w').value}×${$('h').value})`; $('v_ps').textContent=$('ps').value+'px'; $('v_es').textContent=$('es').value+'px'; $('v_fs').textContent=$('fs').value+'%'; $('v_gfo').textContent=$('gfo').value+'%'; $('v_vo').textContent=$('vo').value+'%'; $('v_ch').textContent=$('chn').value+'m'; $('v_gfy').textContent=$('gfn').value+'m';
+  syncPad();
 }
 const redraw = () => draw();
 
@@ -853,6 +867,17 @@ $('save').onclick=()=>{
   },'image/png');
   redraw();
 };
+// クリップボードへコピー(クリスタなどへ貼り付ける用)。保存と同じ範囲・同じサイズの画像
+let cpT=0;
+const cpSay=t=>{ $('cpmsg').textContent=t; clearTimeout(cpT); cpT=setTimeout(()=>{ $('cpmsg').textContent=''; },4000); };
+$('copy').onclick=async()=>{
+  if(!navigator.clipboard||!window.ClipboardItem){ cpSay('このブラウザではコピーできません。PNGを保存してください'); return; }
+  try{
+    const blob=new Promise(res=>{ draw(true); $('cv').toBlob(res,'image/png'); redraw(); }); // 操作用の丸印は含めない
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    cpSay('コピーしました。貼り付けできます');
+  }catch(e){ cpSay('コピーできませんでした。PNGを保存してください'); }
+};
 new ResizeObserver(()=>redraw()).observe($('stage'));
 $('tg').onclick=()=>{
   const a=document.querySelector('.app'); a.classList.toggle('nopanel');
@@ -864,7 +889,9 @@ const secs=[...document.querySelectorAll('details.sec')];
 const savedOpen=d=>{ try{ return localStorage.getItem('kozu_'+d.dataset.k)!=='0'; }catch(e){ return true; } };
 secs.forEach(d=>d.addEventListener('toggle',()=>{ if(mq.matches) return; try{ localStorage.setItem('kozu_'+d.dataset.k,d.open?'1':'0'); }catch(e){} }));
 const pbody=$('pbody'), tabOf=el=>el.dataset.tab||el.dataset.k;
+let curTab='cam';
 function setTab(k){
+  curTab=k;
   [...pbody.children].forEach(el=>el.classList.toggle('on',tabOf(el)===k));
   $('tabs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===k));
   pbody.scrollTop=0;
@@ -886,7 +913,99 @@ grip.addEventListener('pointerup',()=>{
   gd=null;
 });
 grip.addEventListener('pointercancel',()=>{ if(gd){ setDrawer(ds); gd=null; } });
-function applyLayout(){ secs.forEach(d=>{ d.open=mq.matches?true:savedOpen(d); }); if(mq.matches) setDrawer(ds); }
+// PCでは人形の操作を、プレビュー右の空きスペースに出す(スマホ・iPadはタブのまま)
+const figSec=document.querySelector('details.sec[data-k="fig"]'), poseSec=document.querySelector('details.sec[data-k="pose"]'), figHome=document.createElement('div'); figHome.hidden=true; poseSec.after(figHome);
+$('figside').addEventListener('wheel',e=>e.stopPropagation());
+// プレビューの右端にカーソルを近づけると、人形の操作が出てくる(PCのみ)
+const fs=$('figside'), ft=$('figtab'), stageEl=$('stage');
+let fTimer=0, fDown=false, fZone=false;
+const figBusy=()=>fDown||fs.matches(':hover')||fs.querySelector('select:focus')||fs.querySelector(':focus-visible');
+function figShow(v){ clearTimeout(fTimer); fTimer=0; fs.classList.toggle('hide',!v); ft.classList.toggle('gone',v); }
+function figLater(){ if(fTimer) return; fTimer=setTimeout(()=>{ fTimer=0; if(!figBusy()&&!fZone) figShow(false); },450); }
+stageEl.addEventListener('pointermove',e=>{
+  if(mq.matches||e.pointerType==='touch'||e.buttons) return;
+  const r=stageEl.getBoundingClientRect();
+  fZone=r.right-e.clientX<=48&&e.clientY>=r.top+40; // 右上のズームボタンは避ける
+  if(fZone) figShow(true); else figLater();
+});
+stageEl.addEventListener('pointerleave',()=>{ fZone=false; figLater(); });
+fs.addEventListener('pointerleave',figLater);
+fs.addEventListener('pointerdown',()=>{ fDown=true; });
+addEventListener('pointerup',()=>{ if(fDown){ fDown=false; figLater(); } });
+addEventListener('pointercancel',()=>{ fDown=false; figLater(); });
+fs.addEventListener('change',e=>{ if(e.target.tagName==='SELECT') e.target.blur(); figLater(); });
+fs.addEventListener('focusout',figLater);
+ft.addEventListener('focus',()=>figShow(true));
+ft.addEventListener('click',()=>figShow(true));
+stageEl.addEventListener('pointerdown',e=>{ if(mq.matches||fs.contains(e.target)||e.target===ft) return; if(document.activeElement&&fs.contains(document.activeElement)) document.activeElement.blur(); fZone=false; figShow(false); },true);
+// ---- 床・地面の操作パッド(PCはプレビューの左下、スマホ・iPadは下パネルの「地面」タブ) ----
+let gpend=null;
+const gpCommit=()=>{ if(gpend){ commit(gpend); gpend=null; } };
+const gpad=$('gpad'), vpad=$('vpad'), cpad=$('cpad');
+function placePuck(xyId,puckId,nx,ny){
+  const xy=$(xyId), hx=xy.clientWidth/2, hy=xy.clientHeight/2, Rx=Math.max(1,hx-9), Ry=Math.max(1,hy-9), pk=$(puckId);
+  pk.style.left=(hx+clamp(nx,-1,1)*Rx-9)+'px'; pk.style.top=(hy+clamp(ny,-1,1)*Ry-9)+'px';
+}
+function syncPad(){
+  placePuck('gxy','gpuck',+$('gtz').value/45,-$('gtx').value/45);
+  placePuck('cxy','cpuck',+$('yaw').value/180,-$('pitch').value/85);
+}
+(function(){
+  const xy=$('gxy'); let on=false;
+  const f=v=>{ v*=45; return Math.abs(v)<1.5?0:v; }; // 真ん中あたりは水平に吸着
+  function apply(e){
+    const hx=xy.clientWidth/2, hy=xy.clientHeight/2, r=xy.getBoundingClientRect();
+    const nx=clamp((e.clientX-r.left-xy.clientLeft-hx)/Math.max(1,hx-9),-1,1), ny=clamp((e.clientY-r.top-xy.clientTop-hy)/Math.max(1,hy-9),-1,1);
+    $('gtz').value=f(nx).toFixed(1); $('gtx').value=f(-ny).toFixed(1);
+    gpCommit(); redraw();
+  }
+  xy.addEventListener('pointerdown',e=>{ gpend=snap(); on=true; xy.setPointerCapture(e.pointerId); apply(e); });
+  xy.addEventListener('pointermove',e=>{ if(on) apply(e); });
+  for(const t of ['pointerup','pointercancel']) xy.addEventListener(t,()=>{ on=false; });
+  xy.addEventListener('dblclick',()=>{ pushHist(); $('gtx').value=0; $('gtz').value=0; redraw(); });
+  xy.addEventListener('keydown',e=>{ // 矢印キーで1°ずつ
+    const d={ArrowUp:['gtx',1],ArrowDown:['gtx',-1],ArrowRight:['gtz',1],ArrowLeft:['gtz',-1]}[e.key]; if(!d) return;
+    e.preventDefault(); pushHist(); $(d[0]).value=clamp(+$(d[0]).value+d[1],-45,45); redraw();
+  });
+  // カメラ:丸の位置=上下角(縦)と左右の回転(横)。Shiftを押している間は、動かした量の1/5だけ反映(細かく)
+  const cxy=$('cxy'); let con=false, clast=null;
+  function capply(e){
+    const hx=cxy.clientWidth/2, hy=cxy.clientHeight/2, Rx=Math.max(1,hx-9), Ry=Math.max(1,hy-9), r=cxy.getBoundingClientRect();
+    let yaw, pitch;
+    if(e.shiftKey&&clast){ yaw=+$('yaw').value+(e.clientX-clast.x)/Rx*180*.2; pitch=+$('pitch').value-(e.clientY-clast.y)/Ry*85*.2; }
+    else{
+      yaw=clamp((e.clientX-r.left-cxy.clientLeft-hx)/Rx,-1,1)*180; pitch=-clamp((e.clientY-r.top-cxy.clientTop-hy)/Ry,-1,1)*85;
+    }
+    clast={x:e.clientX,y:e.clientY};
+    $('yaw').value=clamp(yaw,-180,180).toFixed(1); $('pitch').value=clamp(pitch,-85,85).toFixed(1);
+    gpCommit(); redraw();
+  }
+  cxy.addEventListener('pointerdown',e=>{ gpend=snap(); con=true; clast=null; cxy.setPointerCapture(e.pointerId); capply(e); });
+  cxy.addEventListener('pointermove',e=>{ if(con) capply(e); });
+  for(const t of ['pointerup','pointercancel']) cxy.addEventListener(t,()=>{ con=false; clast=null; });
+  cxy.addEventListener('dblclick',()=>{ pushHist(); $('pitch').value=0; $('yaw').value=0; redraw(); });
+  cxy.addEventListener('keydown',e=>{ // 矢印キーで1°ずつ
+    const d={ArrowUp:['pitch',1,85],ArrowDown:['pitch',-1,85],ArrowRight:['yaw',1,180],ArrowLeft:['yaw',-1,180]}[e.key]; if(!d) return;
+    e.preventDefault(); pushHist(); $(d[0]).value=clamp(+$(d[0]).value+d[1],-d[2],d[2]); redraw();
+  });
+  const ro=new ResizeObserver(syncPad); ro.observe(xy); ro.observe(cxy);
+  $('gpflat').onclick=()=>{ pushHist(); $('gtx').value=0; $('gtz').value=0; redraw(); };
+  document.querySelectorAll('.lpad').forEach(pd=>{ // たたんだ状態は覚えておく
+    const b=pd.querySelector('.fold'), k='kozu_pad_'+pd.id;
+    try{ if(localStorage.getItem(k)==='1'){ pd.classList.add('min'); b.textContent='▸'; } }catch(e){}
+    b.onclick=()=>{ const m=pd.classList.toggle('min'); b.textContent=m?'▸':'▾'; try{ localStorage.setItem(k,m?'1':'0'); }catch(e){} };
+  });
+  // パッド内のスライダー・色・チェック等も、まとめて「1つ戻す」の対象にする(下パネルに移った時は下パネル側の仕組みに任せる)
+  for(const t of ['pointerdown','keydown']) $('lpads').addEventListener(t,e=>{ if(isU(e.target.id)) gpend=snap(); },true);
+  for(const t of ['input','change']) $('lpads').addEventListener(t,e=>{ if(gpend&&isU(e.target.id)) gpCommit(); });
+  $('lpads').addEventListener('pointerup',()=>{ gpend=null; });
+  $('lpads').addEventListener('wheel',e=>e.stopPropagation());
+})();
+function placeFig(){
+  if(mq.matches){ figHome.before(figSec,poseSec); pbody.append(vpad,cpad,gpad); setTab(curTab); }
+  else{ $('figside').append(figSec,poseSec); $('lpads').append(vpad,cpad,gpad); for(const e of [vpad,cpad,gpad]) e.classList.remove('on'); syncPad(); }
+}
+function applyLayout(){ placeFig(); secs.forEach(d=>{ d.open=mq.matches?true:savedOpen(d); }); if(mq.matches) setDrawer(ds); }
 mq.addEventListener('change',applyLayout);
 addEventListener('resize',()=>{ if(mq.matches) setDrawer(ds); });
 setTab('cam'); applyLayout();
