@@ -79,6 +79,7 @@ details.sec>summary{display:none}
 ・人形の体をドラッグ:地面の上を移動<br>
 ・<span class="dot" style="background:#ff8a00"></span> をドラッグ:向きを回す<br>
 ・<span class="dot" style="background:#14a85a"></span> をドラッグ:身長を変える<br>
+・<span class="dot" style="background:#8a3ffc"></span> をドラッグ:肘・手首・膝・足首を動かす<br>
 ・何もない所をドラッグ:カメラの向きを変える<br>・ホイール:画角を変える(下へ回すと広角、上へ回すと望遠)<br>・Ctrl(またはShift)+ホイール:表示の拡大縮小(カーソル位置が中心)<br>・Spaceキー+ドラッグ / 中ボタン・右ボタンのドラッグ:表示を移動<br>・スマホは2本指でつまんで拡大縮小・移動<br>・「描く」でペン・直線・消しゴムが使えます<br>・プレビューに見えている範囲がそのまま保存されます</div>
 
 <label>保存する画像サイズ</label>
@@ -170,6 +171,8 @@ details.sec>summary{display:none}
 <details class="sec" open data-k="view"><summary>表示</summary>
 <label>線の本数 <span id="v_n"></span></label>
 <input id="n" type="range" min="4" max="60" value="16">
+<label>消失点からの線の不透明度 <span id="v_vo"></span></label>
+<input id="vo" type="range" min="5" max="100" value="75">
 <div class="chk">
 <label><input type="checkbox" id="sh" checked> アイレベル</label>
 <label><input type="checkbox" id="sa" checked> 消失点A</label>
@@ -191,6 +194,11 @@ details.sec>summary{display:none}
 <input id="fr" type="range" min="0" max="359" value="200">
 <label>身長 <span id="v_fh"></span></label>
 <input id="fh" type="range" min="0.5" max="2.5" step="0.05" value="1.7">
+<details class="more" open><summary>ポーズ(関節の角度)</summary>
+<select id="poseSel" aria-label="ポーズを選ぶ"></select>
+<div id="pose"></div>
+<button id="poseReset" class="sm ghost">ポーズを初期化</button>
+</details>
 <details class="more"><summary>操作の感度</summary>
 <label>ドラッグで動かす量 <span id="v_fs"></span></label>
 <input id="fs" type="range" min="5" max="150" step="5" value="100">
@@ -207,13 +215,19 @@ details.sec>summary{display:none}
 
 <script>
 const $ = id => document.getElementById(id);
-const DEF = {w:1000,h:1414,hz:18.3,pitch:-25,fov:55,yaw:30,rl:0,ch:1.6,n:16,gtx:0,gtz:0,gry:0,chn:1.6,gfy:0,gfn:0,fs:100,gc:'#6b7280',gfc:'#b9d7a8',gfo:40};
+const DEF = {w:1000,h:1414,hz:18.3,pitch:-25,fov:55,yaw:30,rl:0,ch:1.6,n:16,gtx:0,gtz:0,gry:0,chn:1.6,gfy:0,gfn:0,fs:100,gc:'#6b7280',gfc:'#b9d7a8',gfo:40,vo:75};
 const COL = {h:'#e5322d', A:'#2f5bea', B:'#1a9e5c', V:'#e08a00', G:'#6b7280', F:'#8a3ffc'};
 const UNIT = {pitch:'°',fov:'°',yaw:'°',rl:'°',n:'',ch:'m',gfy:'m',gtx:'°',gtz:'°',gry:'°',fx:'m',fz:'m',fr:'°',fh:'m'};
 const RAD = Math.PI/180;
 const dot = (a,b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
-const newFig = () => ({x:0,z:4,rot:200,h:1.7});
+// 関節の角度(度)。[キー, 表示名, 最小, 最大, 初期値]
+const POSE_BODY=[['spB','体の前傾',-30,80,0],['spT','体のひねり',-60,60,0],['neB','首の前傾',-40,50,0],['neT','首のひねり',-80,80,0],['pvY','腰の高さ(下げる)',-55,5,0,'cm']];
+const POSE_ARM=[['shF','腕を前へ',-60,180,0],['shA','腕を横へ',0,170,6],['elB','肘を曲げる',0,150,8]];
+const POSE_LEG=[['hpF','脚を前へ',-45,120,0],['hpA','脚を横へ',-15,70,3],['knB','膝を曲げる',0,150,0]];
+const ALLP=[...POSE_BODY]; for(const S of ['L','R']) for(const t of [...POSE_ARM,...POSE_LEG]) ALLP.push([t[0]+S,(S==='L'?'左':'右')+t[1],t[2],t[3],t[4]]);
+const DEFP=Object.fromEntries(ALLP.map(a=>[a[0],a[4]]));
+const newFig = () => ({x:0,z:4,rot:200,h:1.7,pose:{...DEFP}});
 let figs = [newFig()], sel = 0, cam = null, pv = {mx:0,my:0};
 const view = {z:1,x:0,y:0}; // プレビューの拡大率と移動量(保存には影響しない)
 
@@ -323,21 +337,88 @@ function drawGrid(ctx,lw){
   ctx.stroke();
 }
 
-const LOCAL = {
-  head:[0,1.6,0], neck:[0,1.45,0], chest:[0,1.3,0], pelvis:[0,0.95,0],
-  shL:[-.2,1.4,0], shR:[.2,1.4,0], elL:[-.25,1.12,0], elR:[.25,1.12,0], wrL:[-.27,.86,0], wrR:[.27,.86,0],
-  hpL:[-.1,.93,0], hpR:[.1,.93,0], knL:[-.11,.5,0], knR:[.11,.5,0], anL:[-.11,.08,0], anR:[.11,.08,0]
-};
-const BONES = [['neck','chest'],['chest','pelvis'],['shL','shR'],['shL','elL'],['elL','wrL'],['shR','elR'],['elR','wrR'],
-  ['hpL','hpR'],['hpL','knL'],['knL','anL'],['hpR','knR'],['knR','anR'],['shL','hpL'],['shR','hpR'],['neck','head']];
+// 関節の位置を角度から求める(人形の局所座標・身長1.7基準。左=-x、右=+x、前=+z)
+const rx=(v,a)=>{a*=RAD;return [v[0],v[1]*Math.cos(a)-v[2]*Math.sin(a),v[1]*Math.sin(a)+v[2]*Math.cos(a)];};
+const ry=(v,a)=>{a*=RAD;return [v[0]*Math.cos(a)+v[2]*Math.sin(a),v[1],-v[0]*Math.sin(a)+v[2]*Math.cos(a)];};
+// 肢の回転:横へ開いてから前へ振る。曲げる向きも同じ回転で動かすので、肘・膝は常に正しい向きに曲がる
+const limbRot=(v,a,f,sg)=>{ const t=sg*a*RAD, F=f*RAD, x=v[0]*Math.cos(t)-v[1]*Math.sin(t), y=v[0]*Math.sin(t)+v[1]*Math.cos(t), z=v[2];
+  return [x, y*Math.cos(F)+z*Math.sin(F), -y*Math.sin(F)+z*Math.cos(F)]; };
+function joints(p){
+  const g=k=>p&&p[k]!==undefined?p[k]:DEFP[k];
+  const Rt=v=>rx(ry(v,g('spT')),g('spB')), Rn=v=>Rt(rx(ry(v,g('neT')),g('neB')));
+  const add=(a,b,k=1)=>[a[0]+b[0]*k,a[1]+b[1]*k,a[2]+b[2]*k];
+  const lim=(a,f,sg,b,w0)=>{ const u=limbRot([0,-1,0],a,f,sg), w=limbRot(w0,a,f,sg), B=b*RAD;
+    return [u,[u[0]*Math.cos(B)+w[0]*Math.sin(B),u[1]*Math.cos(B)+w[1]*Math.sin(B),u[2]*Math.cos(B)+w[2]*Math.sin(B)]]; };
+  const J={pelvis:[0,.95+g('pvY')/100,0]};
+  J.chest=add(J.pelvis,Rt([0,.35,0])); J.neck=add(J.pelvis,Rt([0,.5,0]));
+  J.head=add(J.neck,Rn([0,.15,0])); J.face=add(J.head,Rn([0,0,.11]));
+  for(const [S,sg] of [['L',-1],['R',1]]){
+    const sh=add(J.pelvis,Rt([sg*.2,.45,0])), [u,f]=lim(g('shA'+S),g('shF'+S),sg,g('elB'+S),[0,0,1]);
+    J['sh'+S]=sh; J['el'+S]=add(sh,Rt(u),.28); J['wr'+S]=add(J['el'+S],Rt(f),.26);
+    const hp=add(J.pelvis,[sg*.1,-.02,0]), [t,n]=lim(g('hpA'+S),g('hpF'+S),sg,g('knB'+S),[0,0,-1]);
+    J['hp'+S]=hp; J['kn'+S]=add(hp,t,.43); J['an'+S]=add(J['kn'+S],n,.42);
+  }
+  return J;
+}
+// 球のドラッグ:親の関節を中心に、長さ一定の球面上で動かす(視線と球面の交点)
+const JD={el:{p:'sh',len:.28,a:'shA',f:'shF',tor:1,mode:0},wr:{p:'el',len:.26,a:'shA',f:'shF',b:'elB',tor:1,w:[0,0,1],mode:1},
+          kn:{p:'hp',len:.43,a:'hpA',f:'hpF',mode:0},an:{p:'kn',len:.42,a:'hpA',f:'hpF',b:'knB',w:[0,0,-1],mode:1}};
+const distP=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+function hitJoint(px,py){
+  const fg=figs[sel]; if(!fg||!$('sf').checked) return null;
+  const fr=frame(fg), J=joints(fg.pose); let best=null, bd=1e9;
+  for(const S of ['L','R']) for(const k in JD){
+    const c=toCam(fr.W3(J[k+S])); if(c[2]<.05) continue; const p=scr(c);
+    const r=Math.max(cam.f*JR[k]*fr.s/c[2]*1.3,cam.W*.02), d=Math.hypot(p[0]-px,p[1]-py);
+    if(d<r&&d<bd){bd=d;best={type:'joint',k,S,sg:S==='L'?-1:1};}
+  }
+  return best;
+}
+function dragJoint(px,py,d){
+  const fg=figs[sel], fr=frame(fg), pose=fg.pose||(fg.pose={...DEFP}), J=joints(pose), jd=JD[d.k], S=d.S, sg=d.sg;
+  const g=k=>pose[k]!==undefined?pose[k]:DEFP[k], rg=k=>{const e=ALLP.find(q=>q[0]===k);return [e[2],e[3]];};
+  const set=(k,v)=>{ pose[k]=Math.round(v*10)/10; };
+  if(jd.mode){ // 手首・足首:曲げ角だけを動かす(ちょうど画面上でポインターに最も近くなる角度を探す)
+    const bk=jd.b+S, [b0,b1]=rg(bk); let bb=g(bk), bd=1e9;
+    for(let q=b0;q<=b1;q++){
+      pose[bk]=q; const c=toCam(fr.W3(joints(pose)[d.k+S])); if(c[2]<.05) continue;
+      const pp=scr(c), dd=Math.hypot(pp[0]-px,pp[1]-py); if(dd<bd){bd=dd;bb=q;}
+    }
+    set(bk,bb); return;
+  }
+  const Pw=fr.W3(J[jd.p+S]), Cw=fr.W3(J[d.k+S]), Rr=jd.len*fr.s;
+  const cx=(px-cam.W/2)/cam.f, cy=-(py-cam.H/2)/cam.f;
+  let D=[0,1,2].map(i=>cx*cam.R[i]+cy*cam.U[i]+cam.F[i]); const dl=Math.hypot(...D); D=D.map(v=>v/dl);
+  const O=[0,cam.cy,0], m=[O[0]-Pw[0],O[1]-Pw[1],O[2]-Pw[2]], b=dot(m,D), disc=b*b-(dot(m,m)-Rr*Rr), at=t=>[O[0]+D[0]*t,O[1]+D[1]*t,O[2]+D[2]*t];
+  let T=null;
+  if(disc>=0){ const r=Math.sqrt(disc), c=[-b-r,-b+r].filter(t=>t>0).map(at); if(c.length) T=c.reduce((x,y)=>distP(y,Cw)<distP(x,Cw)?y:x); }
+  if(!T){ const Q=at(Math.max(-b,1)), v=[Q[0]-Pw[0],Q[1]-Pw[1],Q[2]-Pw[2]], l=Math.hypot(...v)||1; T=[Pw[0]+v[0]/l*Rr,Pw[1]+v[1]/l*Rr,Pw[2]+v[2]/l*Rr]; }
+  const dw=[T[0]-Pw[0],T[1]-Pw[1],T[2]-Pw[2]], q1=toL(Pw), q2=toL([Pw[0]+dw[0],Pw[1]+dw[1],Pw[2]+dw[2]]);
+  const gl=[q2[0]-q1[0],q2[1]-q1[1],q2[2]-q1[2]], ar=fg.rot*RAD, ca=Math.cos(ar), sa=Math.sin(ar);
+  let v=[gl[0]*ca-gl[2]*sa,gl[1],gl[0]*sa+gl[2]*ca]; const l=Math.hypot(...v)||1; v=v.map(x=>x/l);
+  if(jd.tor) v=ry(rx(v,-g('spB')),-g('spT'));
+  const ak=jd.a+S, fk=jd.f+S, [a0,a1]=rg(ak), [f0,f1]=rg(fk);
+  set(ak,clamp(Math.asin(clamp(v[0],-1,1))/RAD*sg,a0,a1));
+  if(Math.hypot(v[1],v[2])>.08){ let F=Math.atan2(v[2],-v[1])/RAD; if(F<-90) F+=360; set(fk,clamp(F,f0,f1)); }
+}
+// ポーズのひな形(直立からの差分)
+const PRESETS=[['直立',{}],['Tポーズ',{shAL:90,shAR:90,elBL:0,elBR:0}],
+ ['歩く',{spB:3,pvY:-5,shFL:-22,shFR:22,elBL:12,elBR:20,hpFL:22,hpFR:-18,knBL:5,knBR:25}],
+ ['走る',{spB:18,pvY:-25,shFL:-55,shFR:55,shAL:12,shAR:12,elBL:95,elBR:95,hpFL:60,hpFR:-35,knBL:35,knBR:115}],
+ ['座る(椅子)',{spB:5,pvY:-45,hpFL:90,hpFR:90,hpAL:6,hpAR:6,knBL:90,knBR:90,shFL:25,shFR:25,elBL:65,elBR:65}],
+ ['手を振る',{shAR:105,shFR:0,elBR:70}],['前を指さす',{shFR:90,shAR:0,elBR:5}],
+ ['お辞儀',{spB:45,neB:10,shFL:15,shFR:15}],['見上げる',{spB:-8,neB:-35}],['万歳',{shAL:165,shAR:165,elBL:0,elBR:0}]];
+const TORSO=[['neck','chest'],['chest','pelvis'],['shL','shR'],['hpL','hpR'],['shL','hpL'],['shR','hpR'],['neck','head']];
+const JR={sh:.065,el:.052,wr:.038,hp:.085,kn:.07,an:.05}; // 関節の球の半径(m)。円柱の太さは球の0.8倍
+const LIMBS=[['sh','el'],['el','wr'],['hp','kn'],['kn','an']];
 const ROT_H=[0,0,.95], TOP_H=[0,1.82,0]; // 操作ハンドルの位置(人形の局所座標)
 function frame(fg){
   const s=fg.h/1.7, a=fg.rot*RAD, ca=Math.cos(a), sa=Math.sin(a);
   return {s, W3:l=>toW([fg.x+(l[0]*ca+l[2]*sa)*s, l[1]*s, fg.z+(-l[0]*sa+l[2]*ca)*s])};
 }
 function drawFig(ctx,fg,lw,active){
-  const fr=frame(fg), s=fr.s, W3=fr.W3;
-  const P={}; for(const k in LOCAL) P[k]=W3(LOCAL[k]);
+  const fr=frame(fg), s=fr.s, W3=fr.W3, J=joints(fg.pose);
+  const P={}; for(const k in J) P[k]=W3(J[k]);
   ctx.strokeStyle=COL.F; ctx.fillStyle=COL.F; ctx.lineCap='round'; ctx.lineJoin='round';
   ctx.globalAlpha=.55; ctx.lineWidth=lw*1.5; ctx.beginPath();
   for(let i=0;i<24;i++){
@@ -346,18 +427,30 @@ function drawFig(ctx,fg,lw,active){
   }
   seg3(ctx,W3([0,0,.35]),W3([0,0,.75])); ctx.stroke();
   ctx.globalAlpha=.9; ctx.lineWidth=lw*(active?3.6:3); ctx.beginPath();
-  for(const [p,q] of BONES) seg3(ctx,P[p],P[q]);
+  for(const [p,q] of TORSO) seg3(ctx,P[p],P[q]);
   ctx.stroke();
-  for(const k in P){
-    if(k==='head') continue;
-    const c=toCam(P[k]); if(c[2]<.05) continue; const p=scr(c);
-    ctx.beginPath(); ctx.arc(p[0],p[1],lw*2.4,0,7); ctx.fill();
+  const sp=k=>{ const c=toCam(P[k]); return c[2]<.05?null:{x:scr(c)[0],y:scr(c)[1],z:c[2]}; };
+  const rad=(k,z)=>cam.f*JR[k.slice(0,2)]*s/z;
+  ctx.lineWidth=lw*(active?2.4:2);
+  for(const S of ['L','R']) for(const [a,b] of LIMBS){ // 円柱:両端の球に接する2本の線
+    const A=sp(a+S), B=sp(b+S); if(!A||!B) continue;
+    const ra=.8*rad(a,A.z), rb=.8*rad(b,B.z), dx=B.x-A.x, dy=B.y-A.y, L=Math.hypot(dx,dy);
+    if(L<=Math.abs(ra-rb)+1e-3) continue;
+    const ux=dx/L, uy=dy/L, k=(ra-rb)/L, q=Math.sqrt(1-k*k);
+    ctx.beginPath();
+    for(const sg of [-1,1]){ const mx=-sg*uy*q+ux*k, my=sg*ux*q+uy*k; ctx.moveTo(A.x+ra*mx,A.y+ra*my); ctx.lineTo(B.x+rb*mx,B.y+rb*my); }
+    ctx.stroke();
+  }
+  ctx.lineWidth=lw*1.6;
+  for(const S of ['L','R']) for(const k of ['sh','el','wr','hp','kn','an']){ // 関節の球
+    const A=sp(k+S); if(!A) continue; const r=rad(k,A.z);
+    ctx.beginPath(); ctx.arc(A.x,A.y,r,0,7); ctx.globalAlpha=.16; ctx.fill(); ctx.globalAlpha=.9; ctx.stroke();
   }
   const hc=toCam(P.head);
   if(hc[2]>.05){
     const p=scr(hc), r=cam.f*.11*s/hc[2];
     ctx.lineWidth=lw*2.2; ctx.beginPath(); ctx.arc(p[0],p[1],r,0,7); ctx.stroke();
-    const fw=toCam(W3([0,1.6,.11]));
+    const fw=toCam(P.face);
     if(fw[2]>.05){
       const q=scr(fw); ctx.lineWidth=lw*1.2; ctx.globalAlpha=.6;
       ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke();
@@ -371,6 +464,12 @@ function drawHandles(ctx,lw){
     const c=toCam(fr.W3(l)); if(c[2]<.05) continue; const p=scr(c);
     ctx.beginPath(); ctx.arc(p[0],p[1],lw*7,0,7);
     ctx.fillStyle=col; ctx.fill(); ctx.lineWidth=lw*2; ctx.strokeStyle='#fff'; ctx.stroke();
+  }
+  const J=joints(fg.pose); // ドラッグできる関節(肘・手首・膝・足首)
+  for(const S of ['L','R']) for(const k in JD){
+    const c=toCam(fr.W3(J[k+S])); if(c[2]<.05) continue; const p=scr(c);
+    ctx.beginPath(); ctx.arc(p[0],p[1],lw*5.5,0,7);
+    ctx.fillStyle='rgba(138,63,252,.3)'; ctx.fill(); ctx.lineWidth=lw*1.8; ctx.strokeStyle='#fff'; ctx.stroke();
   }
 }
 
@@ -399,7 +498,7 @@ function draw(ex){
     ctx.save(); ctx.translate(dm.mx,dm.my);
   }
   if($('sg').checked){ if($('gf').checked) fillGround(ctx); drawGrid(ctx,lw); }
-  ctx.lineWidth=lw; ctx.globalAlpha=.75;
+  ctx.lineWidth=lw; ctx.globalAlpha=$('vo').value/100;
   for(const k of ['A','B','V']){
     if(!$('s'+k.toLowerCase()).checked) continue;
     ctx.strokeStyle=COL[k]; strokeLines(ctx,s.vp[k],n,W,H);
@@ -434,7 +533,7 @@ function draw(ex){
     `${kind}\nアイレベル: 画面中央で上から ${Math.round(s.horizonC*k)}px(${(s.horizonC/H*100).toFixed(0)}%)\n消失点A: ${fmt(s.vp.A)}\n消失点B: ${fmt(s.vp.B)}\n縦の消失点: ${fmt(s.vp.V)}\n床からカメラまで: ${(cam.cy-cam.gfy).toFixed(2)}m`;
   $('v_hz').textContent=(+$('hz').value).toFixed(1)+'%';
   for(const id of ['pitch','fov','yaw','rl','n','gtx','gtz','gry']) $('v_'+id).textContent=$(id).value+UNIT[id];
-  $('save').textContent=`PNGを保存(${$('w').value}×${$('h').value})`; $('v_ps').textContent=$('ps').value+'px'; $('v_es').textContent=$('es').value+'px'; $('v_fs').textContent=$('fs').value+'%'; $('v_gfo').textContent=$('gfo').value+'%'; $('v_ch').textContent=$('chn').value+'m'; $('v_gfy').textContent=$('gfn').value+'m';
+  $('save').textContent=`PNGを保存(${$('w').value}×${$('h').value})`; $('v_ps').textContent=$('ps').value+'px'; $('v_es').textContent=$('es').value+'px'; $('v_fs').textContent=$('fs').value+'%'; $('v_gfo').textContent=$('gfo').value+'%'; $('v_vo').textContent=$('vo').value+'%'; $('v_ch').textContent=$('chn').value+'m'; $('v_gfy').textContent=$('gfn').value+'m';
 }
 const redraw = () => draw();
 
@@ -444,6 +543,7 @@ function syncFig(){
   const fs=$('fsel'); fs.innerHTML=figs.map((_,i)=>`<option value="${i}">人形 ${i+1}</option>`).join('');
   const ok=figs.length>0; if(ok) fs.value=sel;
   $('fdel').disabled=!ok; $('fadd').disabled=figs.length>=8;
+  for(const [k,,,,d,u] of ALLP){ const e=$('p_'+k); if(!e) continue; e.disabled=!ok; if(ok){ const v=figs[sel].pose&&figs[sel].pose[k]!==undefined?figs[sel].pose[k]:d; e.value=v; $('v_p_'+k).textContent=Math.round(v)+(u||'°'); } }
   for(const id in FK){
     $(id).disabled=!ok;
     if(ok){ $(id).value=figs[sel][FK[id]]; $('v_'+id).textContent=(+figs[sel][FK[id]]).toFixed(id==='fr'?0:1)+UNIT[id]; }
@@ -452,6 +552,13 @@ function syncFig(){
 }
 for(const id in FK) $(id).oninput=()=>{ if(!figs[sel]) return; figs[sel][FK[id]]=+$(id).value; syncFig(); redraw(); };
 $('fsel').onchange=()=>{sel=+$('fsel').value; syncFig(); redraw();};
+// ポーズのスライダー(関節の角度)
+const HEAD={spB:'体・首',shFL:'左腕',hpFL:'左脚',shFR:'右腕',hpFR:'右脚'};
+$('pose').innerHTML=ALLP.map(([k,n,a,b,d])=>(HEAD[k]?`<div class="sub" style="margin:10px 0 0;font-weight:600">${HEAD[k]}</div>`:'')+`<label>${n} <span id="v_p_${k}"></span></label><input id="p_${k}" type="range" min="${a}" max="${b}" value="${d}">`).join('');
+$('pose').oninput=e=>{ const id=e.target.id; if(!figs[sel]||!id.startsWith('p_')) return; (figs[sel].pose||(figs[sel].pose={}))[id.slice(2)]=+e.target.value; syncFig(); redraw(); };
+$('poseSel').innerHTML='<option value="">ポーズを選ぶ…</option>'+PRESETS.map((q,i)=>`<option value="${i}">${q[0]}</option>`).join('');
+$('poseSel').onchange=()=>{ const i=$('poseSel').value; $('poseSel').value=''; if(i===''||!figs[sel]) return; pushHist(); figs[sel].pose={...DEFP,...PRESETS[+i][1]}; syncFig(); redraw(); };
+$('poseReset').onclick=()=>{ if(!figs[sel]) return; pushHist(); figs[sel].pose={...DEFP}; syncFig(); redraw(); };
 $('fadd').onclick=()=>{ pushHist(); const f=newFig(); f.x=figs.length?Math.min(30,figs[sel].x+1):0; figs.push(f); sel=figs.length-1; syncFig(); redraw(); };
 $('fdel').onclick=()=>{ pushHist(); figs.splice(sel,1); sel=Math.max(0,sel-1); syncFig(); redraw(); };
 
@@ -460,7 +567,8 @@ let strokes=[], hist=[], lastS=null, eraserPos=null;
 const curMode=()=>document.querySelector('input[name=mode]:checked').value;
 // 履歴(描いた線・カメラ・地面・人形をまとめて戻せる)
 const redoSt=[];
-const HV=['hz','pitch','fov','yaw','rl','ch','chn','gfy','gfn','gtx','gtz','gry','step','gc','gfc','gfo'];
+const HV=['hz','pitch','fov','yaw','rl','ch','chn','gfy','gfn','gtx','gtz','gry','step','gc','gfc','gfo','vo'];
+const isU=id=>UNDO_IDS.includes(id)||id.startsWith('p_');
 const UNDO_IDS=[...HV,'hz','sg','gf','fx','fz','fr','fh'];
 const snap=()=>JSON.stringify({strokes,figs,sel,sg:$('sg').checked,gf:$('gf').checked,v:Object.fromEntries(HV.map(id=>[id,$(id).value]))});
 const commit=s=>{ hist.push(s); if(hist.length>80) hist.shift(); redoSt.length=0; };
@@ -476,8 +584,8 @@ function redo(){ if(!redoSt.length) return; hist.push(snap()); restore(redoSt.po
 // パネルのスライダー等:操作の前に状態を控え、最初の変更で履歴に確定する(ドラッグ中は1回分)
 let pend=null, wheelT=0;
 const panelEl=document.querySelector('.panel');
-for(const t of ['pointerdown','keydown']) panelEl.addEventListener(t,e=>{ if(UNDO_IDS.includes(e.target.id)) pend=snap(); },true);
-for(const t of ['input','change']) panelEl.addEventListener(t,e=>{ if(pend&&UNDO_IDS.includes(e.target.id)){ commit(pend); pend=null; } });
+for(const t of ['pointerdown','keydown']) panelEl.addEventListener(t,e=>{ if(isU(e.target.id)) pend=snap(); },true);
+for(const t of ['input','change']) panelEl.addEventListener(t,e=>{ if(pend&&isU(e.target.id)){ commit(pend); pend=null; } });
 function strokePath(ctx,st,W,H){
   const p=st.pts; ctx.beginPath(); ctx.moveTo(p[0][0]*W,p[0][1]*H);
   if(p.length===1) ctx.lineTo(p[0][0]*W+.01,p[0][1]*H);
@@ -592,10 +700,12 @@ $('cv').addEventListener('pointerdown',e=>{
       if(p && Math.hypot(p[0]-px,p[1]-py)<cam.W*.025){t=k;break;}
     }
   }
+  const jt=t?null:hitJoint(px,py);
   if(t==='h'){
     const fr=frame(figs[sel]), foot=screenOf(fr.W3([0,0,0])), top=screenOf(fr.W3(TOP_H));
     if(foot&&top) drag={type:'h',h0:figs[sel].h,foot,L0:Math.hypot(top[0]-foot[0],top[1]-foot[1])||1};
   }else if(t==='rot') drag={type:'rot'};
+  else if(jt) drag=jt;
   else{
     let best=-1,bd=cam.W*.12;
     if($('sf').checked) figs.forEach((fg,i)=>{
@@ -629,6 +739,8 @@ $('cv').addEventListener('pointermove',e=>{
     $('yaw').value=clamp(drag.yaw-(px-drag.px)*k,-180,180).toFixed(1);
   }else if(drag.type==='h'){
     fg.h=clamp(drag.h0*Math.hypot(px-drag.foot[0],py-drag.foot[1])/drag.L0,.5,2.5);
+  }else if(drag.type==='joint'){
+    dragJoint(px,py,drag);
   }else{
     const g=groundAt(px,py,drag.type==='move'?drag.gh:0); if(!g) return;
     if(drag.type==='move'){
@@ -718,7 +830,7 @@ $('preset').onchange=()=>{
   [$('w').value,$('h').value]=v.split(','); redraw();
 };
 for(const id of ['w','h']) $(id).oninput=()=>{$('preset').value='custom'; redraw();};
-for(const id of ['hz','pitch','fov','yaw','rl','n','gtx','gtz','gry','sh','sa','sb','sv','sg','sf','sd','ps','es','fs','gc','gf','gfc','gfo','step']) $(id).oninput=redraw;
+for(const id of ['hz','pitch','fov','yaw','rl','n','vo','gtx','gtz','gry','sh','sa','sb','sv','sg','sf','sd','ps','es','fs','gc','gf','gfc','gfo','step']) $(id).oninput=redraw;
 $('reset').onclick=()=>{
   pushHist();
   for(const k in DEF) $(k).value=DEF[k];
